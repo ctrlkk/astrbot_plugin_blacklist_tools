@@ -1,4 +1,4 @@
-# AstrBot 黑名单工具插件
+8# AstrBot 黑名单工具插件
 
 一个为 AstrBot 设计的黑名单管理插件，允许管理员和 LLM 将用户添加到黑名单中，阻止他们的消息。
 
@@ -83,31 +83,22 @@ allow_permanent_blacklist: true  # 是否允许永久黑名单，默认为true
 
 ### LLM 工具
 
-插件提供了两个 LLM 工具，允许 LLM 直接管理黑名单：
+插件提供了一个 LLM 工具，允许 LLM 进行拉黑操作：
 
-#### add_to_blacklist
+#### add_to_block_user
 
 将用户添加到黑名单：
 
 ```python
-add_to_blacklist(user_id, duration=0, reason="")
+add_to_block_user(user_id, duration=0, reason="")
 ```
 
 参数：
 - `user_id` (string): 要添加到黑名单的用户ID
-- `duration` (number): 黑名单时长（秒），设为0表示永久拉黑
+- `duration` (string): 黑名单时长（秒），设为0表示永久拉黑
 - `reason` (string): 拉黑原因
 
-#### remove_from_blacklist
 
-从黑名单移除用户：
-
-```python
-remove_from_blacklist(user_id)
-```
-
-参数：
-- `user_id` (string): 要从黑名单移除的用户ID
 
 ## 工作原理
 
