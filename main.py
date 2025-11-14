@@ -357,3 +357,73 @@ class MyPlugin(Star):
             # 直接发送消息给用户，提供即时反馈
             await event.send(MessageChain().message(response))
             return response
+
+    @filter.llm_tool(name="list_blacklist")
+    async def list_blacklist(
+        self, event: AstrMessageEvent, page: int = 1, page_size: int = 10
+    ) -> str:
+        """
+        查看当前黑名单列表。
+        显示黑名单中所有用户的详细信息，包括用户ID、加入时间、过期时间和拉黑原因。
+        支持分页显示，默认显示第1页，每页10条记录。
+
+        Args:
+            page (number): 页码，从1开始，默认为1
+            page_size (number): 每页显示的数量，默认为10
+        """
+        try:
+            total_count = await self.db.get_blacklist_count()
+
+            if total_count == 0:
+                response = "黑名单为空。"
+                # 直接发送消息给用户，提供即时反馈
+                await event.send(MessageChain().message(response))
+                return response
+
+            # 计算分页参数
+            total_pages = (total_count + page_size - 1) // page_size
+            if page < 1:
+                page = 1
+            elif page > total_pages:
+                page = total_pages
+
+            users = await self.db.get_blacklist_users(page, page_size)
+
+            result = "黑名单列表\n"
+            result += "=" * 60 + "\n\n"
+
+            result += f"{'ID':<20} {'加入时间':<20} {'过期时间':<20} {'原因':<20}\n"
+            result += "-" * 80 + "\n"
+
+            for user in users:
+                user_id, ban_time, expire_time, reason = user
+                ban_time_str = self._format_datetime(ban_time, check_expire=False)
+                expire_time_str = self._format_datetime(expire_time, check_expire=True)
+                reason_str = reason if reason else "无"
+                result += f"{user_id:<20} {ban_time_str:<20} {expire_time_str:<20} {reason_str:<20}\n"
+
+            result += "-" * 80 + "\n"
+            result += f"第 {page}/{total_pages} 页，共 {total_count} 条记录\n"
+            result += f"每页显示 {page_size} 条记录\n"
+
+            if page > 1:
+                result += f"使用 list_blacklist 工具查看上一页：page={page - 1}, page_size={page_size}\n"
+            if page < total_pages:
+                result += f"使用 list_blacklist 工具查看下一页：page={page + 1}, page_size={page_size}\n"
+
+            # 尝试生成图片，如果失败则发送文本
+            image_data = await text_to_image(result)
+            if image_data:
+                await event.send(MessageChain([Comp.Image.fromBase64(image_data)]))
+                response = "已发送黑名单列表图片。"
+            else:
+                await event.send(MessageChain().message(result))
+                response = "已发送黑名单列表文本。"
+            
+            return response
+        except Exception as e:
+            logger.error(f"列出黑名单时出错：{e}")
+            response = f"列出黑名单时出错：{e}"
+            # 直接发送消息给用户，提供即时反馈
+            await event.send(MessageChain().message(response))
+            return response
