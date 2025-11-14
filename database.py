@@ -1,12 +1,13 @@
 import aiosqlite
 from datetime import datetime, timedelta
 from astrbot.api import logger
+from typing import Optional
 
 
 class BlacklistDatabase:
     def __init__(self, db_path: str, auto_delete_expired_after: int = -1):
         self.db_path = db_path
-        self._db = None
+        self._db: Optional[aiosqlite.Connection] = None
         self.auto_delete_expired_after = auto_delete_expired_after
 
     async def initialize(self):
@@ -48,12 +49,9 @@ class BlacklistDatabase:
                     expire_datetime = datetime.fromisoformat(expire_time)
                     now = datetime.now()
                     if now > expire_datetime:
-                        if not self.auto_delete_expired_after == -1:
-                            delete_time = expire_datetime + timedelta(
-                                seconds=self.auto_delete_expired_after
-                            )
-                            if now > delete_time:
-                                await self.remove_user(user_id)
+                        # 黑名单已过期，立即删除记录以允许重新拉黑
+                        logger.info(f"用户 {user_id} 的黑名单已过期，正在移除记录")
+                        await self.remove_user(user_id)
                         return False
                     else:
                         logger.info(f"用户 {user_id} 在黑名单中，消息已被阻止")
@@ -100,7 +98,11 @@ class BlacklistDatabase:
             return None
 
     async def add_user(
-        self, user_id: str, ban_time: str, expire_time: str = None, reason: str = ""
+        self,
+        user_id: str,
+        ban_time: str,
+        expire_time: Optional[str] = None,
+        reason: str = "",
     ):
         """添加用户到黑名单"""
         try:
