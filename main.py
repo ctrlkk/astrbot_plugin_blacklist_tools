@@ -269,7 +269,8 @@ class MyPlugin(Star):
     ) -> str:
         """
         将用户添加到黑名单。
-        当您决定将用户加入黑名单并停止所有联系时，请使用此功能。
+        ⚠️ 重要提醒：此操作是最终性的，执行后用户将被立即拉黑，无需任何后续确认或重复调用。
+        当您确定要将用户加入黑名单时，调用此工具一次即可完成整个流程。
 
         Args:
             user_id (string): 要添加到黑名单的用户ID
@@ -277,6 +278,11 @@ class MyPlugin(Star):
             reason (string): 拉黑原因
         """
         try:
+            # 检查用户是否已在黑名单中
+            existing_user = await self.db.get_user_info(user_id)
+            if existing_user:
+                return f"用户 {user_id} 已在黑名单中，无需重复添加。操作已完成。"
+
             ban_time = datetime.now().isoformat()
             expire_time = None
             actual_duration = duration
@@ -297,13 +303,13 @@ class MyPlugin(Star):
             await self.db.add_user(user_id, ban_time, expire_time, reason)
 
             if actual_duration > 0:
-                return f"用户 {user_id} 已被加入黑名单，时长 {actual_duration} 秒"
+                return f"✅ 已成功添加用户 {user_id} 到黑名单，时长 {actual_duration} 秒。操作已完成，无需进一步操作。"
             else:
-                return f"用户 {user_id} 已被永久加入黑名单"
+                return f"✅ 已成功添加用户 {user_id} 到永久黑名单。操作已完成，无需进一步操作。"
 
         except Exception as e:
             logger.error(f"添加用户 {user_id} 到黑名单时出错：{e}")
-            return "添加用户到黑名单时出错"
+            return f"❌ 添加用户到黑名单时出错：{e}"
 
     @filter.llm_tool(name="remove_from_blacklist")
     async def remove_from_blacklist(
@@ -311,6 +317,8 @@ class MyPlugin(Star):
     ) -> str:
         """
         从黑名单移除用户。
+        ⚠️ 重要提醒：此操作是最终性的，执行后用户将被立即从黑名单移除，无需任何后续确认或重复调用。
+        当您确定要将用户从黑名单移除时，调用此工具一次即可完成整个流程。
 
         Args:
             user_id (string): 要从黑名单移除的用户ID
@@ -319,12 +327,12 @@ class MyPlugin(Star):
             user = await self.db.get_user_info(user_id)
 
             if not user:
-                return f"用户 {user_id} 不在黑名单中。"
+                return f"用户 {user_id} 不在黑名单中。操作已完成。"
 
             if await self.db.remove_user(user_id):
-                return f"用户 {user_id} 已从黑名单中移除。"
+                return f"✅ 用户 {user_id} 已从黑名单中移除。操作已完成，无需进一步操作。"
             else:
-                return "从黑名单移除用户时出错。"
+                return "❌ 从黑名单移除用户时出错。"
         except Exception as e:
             logger.error(f"从黑名单移除用户 {user_id} 时出错：{e}")
-            return "从黑名单移除用户时出错。"
+            return f"❌ 从黑名单移除用户时出错：{e}"
