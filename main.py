@@ -375,10 +375,7 @@ class MyPlugin(Star):
             total_count = await self.db.get_blacklist_count()
 
             if total_count == 0:
-                response = "黑名单为空。"
-                # 直接发送消息给用户，提供即时反馈
-                await event.send(MessageChain().message(response))
-                return response
+                return "黑名单为空。"
 
             # 计算分页参数
             total_pages = (total_count + page_size - 1) // page_size
@@ -410,20 +407,8 @@ class MyPlugin(Star):
                 result += f"使用 list_blacklist 工具查看上一页：page={page - 1}, page_size={page_size}\n"
             if page < total_pages:
                 result += f"使用 list_blacklist 工具查看下一页：page={page + 1}, page_size={page_size}\n"
-
-            # 尝试生成图片，如果失败则发送文本
-            image_data = await text_to_image(result)
-            if image_data:
-                await event.send(MessageChain([Comp.Image.fromBase64(image_data)]))
-                response = "已发送黑名单列表图片。"
-            else:
-                await event.send(MessageChain().message(result))
-                response = "已发送黑名单列表文本。"
             
-            return response
+            return result
         except Exception as e:
             logger.error(f"列出黑名单时出错：{e}")
-            response = f"列出黑名单时出错：{e}"
-            # 直接发送消息给用户，提供即时反馈
-            await event.send(MessageChain().message(response))
-            return response
+            return f"列出黑名单时出错：{e}"
